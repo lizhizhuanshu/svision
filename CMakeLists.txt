@@ -13,11 +13,9 @@ list(APPEND DIR_SRCS ./lodepng/lodepng.cpp)
 
 if(SVISION_SHARED)
     add_library(${PROJECT_NAME} SHARED ${DIR_SRCS})
-    target_link_libraries(${PROJECT_NAME})
     set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 endif()
 
 if(SVISION_STATIC)
     add_library(${PROJECT_NAME}_static STATIC ${DIR_SRCS})
-    target_link_libraries(${PROJECT_NAME}_static)
 endif()

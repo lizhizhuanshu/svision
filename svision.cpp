@@ -2,10 +2,11 @@
 
 #include"mlua.h"
 #include"svision.h"
-#include"feature.h"
+#include"StringViewFeature.h"
 #include "lua_svision.h"
 #include "PngImage.h"
-
+#include"ScopeFeatureEx.h"
+#include"EmptyColor.h"
 #define SET_VIEWER_METHOD(m) {#m"ByShiftColor",m<Color>},{#m"ByShiftColorSum",m<int>}
 
 #define PUSH_FIND_ORDER(L,i,name) lua_pushstring(L,#name);\
@@ -39,11 +40,13 @@ static int dotMatrixHeight(lua_State* L);
 static int loadPngImage(lua_State* L);
 static int pngLoad(lua_State*L);
 static int pngGetSize(lua_State*L);
-
-
+static int findFeatureByScopeFeatureEx(lua_State*L);
+static int loadPngImageFromMemory(lua_State*L);
+static int pngLoadFromMemory(lua_State*L);
 class DotMatrix;
 
-
+static int scopeFeatureExLoad(lua_State*L);
+static int newScopeFeatureExLoad(lua_State*L);
 
 
 int luaopen_svision(lua_State* L)
@@ -71,6 +74,7 @@ int luaopen_svision(lua_State* L)
         static luaL_Reg methods[] =
 			{
 				{"load",pngLoad},
+				{"loadFromMemory",pngLoadFromMemory},
 				{"getSize",pngGetSize},
 				{"__gc",lua::finish<PngImage>},
 				{nullptr,nullptr}
@@ -82,9 +86,25 @@ int luaopen_svision(lua_State* L)
 	}
     lua_pop(L,1);
 
+	if(luaL_newClassMetatable(ScopeFeatureEx,L)){
+        static luaL_Reg methods[] =
+			{
+				{"load",scopeFeatureExLoad},
+				{"__gc",lua::finish<ScopeFeatureEx>},
+				{nullptr,nullptr}
+			};
+        luaL_setfuncs(L, methods, 0);
+        lua_pushvalue(L, -1);
+		injectMethodTo(L,-1);
+        lua_setfield(L, -2, "__index");
+	}
+    lua_pop(L,1);
+
     static luaL_Reg methods[] =
 	{
+		{"newScopeFeatureEx",newScopeFeatureExLoad},
 		{"loadImage",loadPngImage},
+		{"loadImageFromMemory",loadPngImageFromMemory},
 		{"getColor",getColor},
 		{"newDotMatrix",createDotMatrixOf},
 		SET_VIEWER_METHOD(getColorCount),
@@ -94,6 +114,7 @@ int luaopen_svision(lua_State* L)
 		SET_VIEWER_METHOD(isFeature),
 		SET_VIEWER_METHOD(getDotMatrix),
 		SET_VIEWER_METHOD(getColorCoordMatrix),
+		{"findFeatureByScopeFeatureEx",findFeatureByScopeFeatureEx},
 		{nullptr,nullptr}
 	};
 
@@ -126,11 +147,32 @@ void injectMethodTo(lua_State*L,int tableIndex)
 		SET_VIEWER_METHOD(isFeature),
 		SET_VIEWER_METHOD(getDotMatrix),
 		SET_VIEWER_METHOD(getColorCoordMatrix),
+		{"findFeatureByScopeFeatureEx",findFeatureByScopeFeatureEx},
 		{nullptr,nullptr}
 	};
 	lua_pushvalue(L,tableIndex);
 	luaL_setfuncs(L,methods,0);
 	lua_pop(L,1);
+}
+
+static int scopeFeatureExLoad(lua_State*L){
+	auto feature = (ScopeFeatureEx*)lua_touserdata(L,1);
+	size_t size;
+	const char* data = luaL_checklstring(L,2,&size);
+	feature->load(data,size);
+	lua_pushboolean(L,1);
+	return 1;
+}
+
+static int newScopeFeatureExLoad(lua_State*L){
+	auto feature = luaL_pushNewObject(ScopeFeatureEx,L);
+	if (lua_isstring(L,1))
+	{
+		size_t size;
+		const char* data = luaL_checklstring(L,1,&size);
+		feature->load(data,size);
+	}
+	return 1;
 }
 
 
@@ -147,11 +189,33 @@ static int loadPngImage(lua_State*L)
 	return 1;
 }
 
+int loadPngImageFromMemory(lua_State*L){
+	size_t size ;
+	const char* data = luaL_checklstring(L,1,&size);
+	auto png= luaL_pushNewObject(PngImage,L);
+	if(!png->load((const unsigned char*) data,size))
+	{
+		lua_pushnil(L);
+		lua_pushstring(L,png->errorText());
+		return 2;
+	}
+	return 1;
+}
+
 static int pngLoad(lua_State*L)
 {
 	auto png = luaL_checkObject(PngImage,L,1);
 	const char* path = luaL_checkstring(L,2);
 	lua_pushboolean(L,png->load(path));
+	return 1;
+}
+
+int pngLoadFromMemory(lua_State*L)
+{
+	auto png = luaL_checkObject(PngImage,L,1);
+	size_t size ;
+	const char* data = luaL_checklstring(L,2,&size);
+	lua_pushboolean(L,png->load((const unsigned char*) data,size));
 	return 1;
 }
 
@@ -480,6 +544,42 @@ int findFeature(lua_State* L)
 	return 2;
 }
 
+int findFeatureByScopeFeatureEx(lua_State*L){
+	luaL_checktype(L, 1, LUA_TUSERDATA);
+	Bitmap* bitmap = lua::toObject<Bitmap>(L, 1);
+	int x = luaL_checkinteger(L, 2);
+	int y = luaL_checkinteger(L, 3);
+	int x1 = luaL_checkinteger(L, 4);
+	int y1 = luaL_checkinteger(L, 5);
+	checkCoordinates(bitmap, L, x, y, x1, y1);
+	Color shift = luaL_checkinteger(L, 8);
+	int canErrorSum = luaL_checkinteger(L, 9);
+	int order = luaL_checkinteger(L, 10);
+	auto *feature = (ScopeFeatureEx*)lua_touserdata(L,7);
+	Point point(-1,-1);
+	if (lua_isnil(L,6))
+	{
+		EmptyColor color(1);
+		findFeature(bitmap,x,y,x1,y1,&color,feature,shift,order,canErrorSum,&point);
+	}else if (lua_isnumber(L,6))
+	{
+		Color color(lua_tointeger(L, 6));
+		findFeature(bitmap,x,y,x1,y1,&color,feature,shift,order,canErrorSum,&point);
+	}else if(lua_isstring(L, 6))
+	{
+		size_t size = 0;
+		const char* str = lua_tolstring(L, 6, &size);
+		StringViewColor color(str, size);
+		findFeature(bitmap, x, y, x1, y1, &color, feature, shift, order, canErrorSum, &point);
+	}
+	else
+	{
+		luaL_error(L,"arg 6 expectant string or integer now type '%s'",luaL_typename(L,6));
+	}
+	lua_pushinteger(L, point.x);
+	lua_pushinteger(L, point.y);
+	return 2;
+}
 
 template<class T>
 int getColorCoordMatrix(lua_State* L)

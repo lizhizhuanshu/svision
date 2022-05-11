@@ -6,6 +6,11 @@
 ---@class CoordColorFeature
 ---@field toString fun():string
 
+---userdata类型的，包含了坐标颜色偏移颜色的二进制数据
+---@class ScopeFeatureEx
+---@field load fun(data:string)
+
+
 local M = {
     ---找图找色函数超出屏幕范围时，抛出的错误消息
     COORDINATES_OVERFLOW = "The coordinates are off screen",
@@ -236,6 +241,30 @@ end
 ---@param canErrorSum integer       允许错误的坐标颜色的总数，当对比坐标颜色时允许一定数量的点颜色不符
 ---@return boolean                  是否符合坐标颜色特征
 function M.isFeatureByShiftColorSum(bitmap,coordColor,shiftColorSum,canErrorSum)
+end
+
+---创建一个特征
+---@param feature string 特征字符串
+---@return ScopeFeatureEx
+function M.newScopeFeatureEx(feature)
+    
+end
+
+---范围内查找符合坐标颜色特征的点，返回第一个找到的点坐标，没找到则返回-1，-1
+---@param bitmap Bitmap 位图
+---@param x integer 最小的横坐标
+---@param y integer 最小的纵坐标
+---@param x1 integer 最大的横坐标
+---@param y1 integer 最大的纵坐标
+---@param findOrder integer 查找的方向
+---@param color integer|string|ColorFeature 颜色特征
+---@param feature ScopeFeatureEx 偏移坐标颜色特征
+---@param shiftColor integer 偏移颜色
+---@param canErrorSum integer       允许错误的坐标颜色的总数，当对比坐标颜色时允许一定数量的点颜色不符
+---@return integer 找到的点的横坐标
+---@return integer 找到的点的纵坐标
+function M.findFeatureByScopeFeatureEx(bitmap,x,y,x1,y1,color,feature,shiftColor,canErrorSum,findOrder)
+    
 end
 
 return M

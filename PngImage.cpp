@@ -34,12 +34,14 @@ bool PngImage::toBoolResult(unsigned int error)
 bool PngImage::load(const unsigned char* data, unsigned int size)
 {
 	lodepng::State state;
+	data_.clear();
 	auto error = lodepng::decode(this->data_,this->width_,this->height_,state,data,size);
 	return toBoolResult(error);
 }
 
 bool PngImage::load(const char* path)
 {
+	data_.clear();
 	auto error = lodepng::decode(this->data_,this->width_,this->height_,path);
 	return toBoolResult(error);
 }
