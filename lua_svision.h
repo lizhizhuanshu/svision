@@ -11,6 +11,9 @@ extern "C"
 
 int luaopen_svision(struct lua_State*L);
 void injectMethodTo(struct lua_State*L,int tableIndex);
+typedef lua_CFunction  lua_CFunction;
+typedef void(*CompareColorMethodReceiver)(const char* name, lua_CFunction method, void*data);
+void eachCompareColorMethod(CompareColorMethodReceiver receiver, void*data);
 #ifdef __cplusplus
 }
 #endif

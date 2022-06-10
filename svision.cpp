@@ -155,6 +155,23 @@ void injectMethodTo(lua_State*L,int tableIndex)
 	lua_pop(L,1);
 }
 
+void eachCompareColorMethod(CompareColorMethodReceiver receiver, void*data){
+#define INJECT_METHOD(m) receiver(#m"ByShiftColor",m<Color>,data);\
+	receiver(#m"ByShiftColorSum",m<int>,data)
+
+	receiver("getColor",getColor,data);
+	receiver("findFeatureByScopeFeatureEx",findFeatureByScopeFeatureEx,data);
+
+	INJECT_METHOD(getColorCount);
+	INJECT_METHOD(findColor);
+	INJECT_METHOD(whichColor);
+	INJECT_METHOD(findFeature);
+	INJECT_METHOD(isFeature);
+	INJECT_METHOD(getDotMatrix);
+	INJECT_METHOD(getColorCoordMatrix);
+#undef INJECT_METHOD
+}
+
 static int scopeFeatureExLoad(lua_State*L){
 	auto feature = (ScopeFeatureEx*)lua_touserdata(L,1);
 	size_t size;
