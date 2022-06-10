@@ -47,7 +47,7 @@ class DotMatrix;
 
 static int scopeFeatureExLoad(lua_State*L);
 static int newScopeFeatureExLoad(lua_State*L);
-
+static int getScopeFeatureExPointCount(lua_State*L);
 
 int luaopen_svision(lua_State* L)
 {
@@ -90,6 +90,7 @@ int luaopen_svision(lua_State* L)
         static luaL_Reg methods[] =
 			{
 				{"load",scopeFeatureExLoad},
+				{"__len",getScopeFeatureExPointCount},
 				{"__gc",lua::finish<ScopeFeatureEx>},
 				{nullptr,nullptr}
 			};
@@ -189,6 +190,12 @@ static int newScopeFeatureExLoad(lua_State*L){
 		const char* data = luaL_checklstring(L,1,&size);
 		feature->load(data,size);
 	}
+	return 1;
+}
+
+static int getScopeFeatureExPointCount(lua_State*L){
+	auto feature = (ScopeFeatureEx*)lua_touserdata(L,1);
+	lua_pushinteger(L,feature->getPointCount());
 	return 1;
 }
 
