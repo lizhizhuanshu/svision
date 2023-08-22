@@ -1,0 +1,4 @@
+
+[submodule "lodepng"]
+	path = lodepng
+	url = https://github.com/lizhizhuanshu/lodepng.git
